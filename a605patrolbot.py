@@ -219,4 +219,6 @@ def webhook():
 
 if __name__ == "__main__":
     keep_alive()
+    telegram_app.initialize()
+    telegram_app.start()
     flask_app.run(host='0.0.0.0', port=8080)
