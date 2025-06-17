@@ -201,6 +201,10 @@ if __name__ == "__main__":
         fallbacks=[],
     )
 
+# Build Telegram app dulu
+telegram_app = ApplicationBuilder().token(TOKEN).build()
+
+# Baru tambahkan handler
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.ALL, handle_any))
 
