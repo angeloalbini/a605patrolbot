@@ -209,7 +209,11 @@ telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.ALL, handle_any))
 
 # Setup Flask
-app = Flask(__name__)
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def index():
+    return "Bot aktif!"
 
 @flask_app.route('/')
 def index():
@@ -221,7 +225,6 @@ def webhook():
     telegram_app.update_queue.put(update)
     return "OK"
 
-# ====== RUN SERVER ======
 if __name__ == "__main__":
     keep_alive()
     flask_app.run(host='0.0.0.0', port=8080)
