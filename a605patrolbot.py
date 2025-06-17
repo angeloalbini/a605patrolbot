@@ -179,17 +179,15 @@ async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return NIP
 
-# Main App
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+# Set level logging
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    # Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-    conv_handler = ConversationHandler(
+# Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+conv_handler = ConversationHandler(
         entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
         states={
             NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
@@ -203,17 +201,11 @@ if __name__ == "__main__":
 
 # Build Telegram app dulu
 telegram_app = ApplicationBuilder().token(TOKEN).build()
-
-# Baru tambahkan handler
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.ALL, handle_any))
 
 # Setup Flask
 flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def index():
-    return "Bot aktif!"
 
 @flask_app.route('/')
 def index():
