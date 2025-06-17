@@ -1,15 +1,11 @@
 from flask import Flask
 from threading import Thread
 
-app = Flask(__name__)
+ping_app = Flask('')
 
-@app.route('/')
+@ping_app.route('/')
 def home():
-    return "A605PatrolBot is alive!"
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
+    return "A605PatrolBot is Active!"
 
 def keep_alive():
-    t = Thread(target=run)
-    t.start()
+    Thread(target=lambda: ping_app.run(host='0.0.0.0', port=8081)).start()
