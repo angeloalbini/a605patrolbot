@@ -1,11 +1,16 @@
+from flask import Flask, request
+from telegram import Update, Bot
+from telegram.ext import (Application, Dispatcher, MessageHandler, filters, ConversationHandler, ContextTypes)
 import logging
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, ConversationHandler
-from datetime import datetime
-import requests
+from keep_alive import keep_alive
 
 from datetime import datetime
 import requests
+
+# Setup Flask
+app = Flask(__name__)
+application = Application.builder().token(TOKEN).build()
+dispatcher: Dispatcher = application.dispatcher
 
 # Token bot
 import os
@@ -201,10 +206,18 @@ if __name__ == "__main__":
         fallbacks=[],
     )
 
-    from keep_alive import keep_alive
+@app.route('/')
+def home():
+    return "Bot aktif!"
 
-    keep_alive()  # agar tidak mati
+@app.route(f"/webhook", methods=['POST'])
+def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), bot)
+        dispatcher.process_update(update)
+        return "ok"
 
-    app.add_handler(conv_handler)
-    app.add_handler(MessageHandler(filters.ALL, handle_any))
-    app.run_polling()
+# Keep alive + start Flask server
+if __name__ == "__main__":
+    keep_alive()
+    app.run(host='0.0.0.0', port=8080)
