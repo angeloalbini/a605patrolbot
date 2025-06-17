@@ -219,8 +219,13 @@ def webhook():
     telegram_app.update_queue.put(update)
     return "OK"
 
+import asyncio
+
+async def main():
+    await telegram_app.initialize()
+    await telegram_app.start()
+    flask_app.run(host='0.0.0.0', port=8080)
+
 if __name__ == "__main__":
     keep_alive()
-    telegram_app.initialize()
-    telegram_app.start()
-    flask_app.run(host='0.0.0.0', port=8080)
+    asyncio.run(main())
