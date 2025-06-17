@@ -1,15 +1,15 @@
 from flask import Flask, request
-from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ConversationHandler, ContextTypes
-import logging
+from telegram import Update, Bot, ReplyKeyboardMarkup
+from telegram.ext import (
+    Application, ApplicationBuilder, ContextTypes,
+    ConversationHandler, MessageHandler, filters
+)
+from datetime import datetime
+import logging, os, requests
 from keep_alive import keep_alive
 
-from datetime import datetime
-import requests
-
-# Token bot
-import os
 TOKEN = os.getenv("TOKEN")
+bot = Bot(token=TOKEN)
 
 # Tahapan conversation
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
@@ -201,25 +201,23 @@ if __name__ == "__main__":
         fallbacks=[],
     )
 
+telegram_app.add_handler(conv_handler)
+telegram_app.add_handler(MessageHandler(filters.ALL, handle_any))
+
 # Setup Flask
 app = Flask(__name__)
-app = ApplicationBuilder().token(TOKEN).build()
 
-app.add_handler(conv_handler)
-app.add_handler(MessageHandler(filters.ALL, handle_any))
-
-@app.route('/')
-def home():
+@flask_app.route('/')
+def index():
     return "Bot aktif!"
 
-@app.route(f"/webhook", methods=['POST'])
+@flask_app.route('/webhook', methods=['POST'])
 def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), bot)
-        dispatcher.process_update(update)
-        return "ok"
+    update = Update.de_json(request.get_json(force=True), bot)
+    telegram_app.update_queue.put(update)
+    return "OK"
 
-# Keep alive + start Flask server
+# ====== RUN SERVER ======
 if __name__ == "__main__":
     keep_alive()
-    app.run(host='0.0.0.0', port=8080)
+    flask_app.run(host='0.0.0.0', port=8080)
