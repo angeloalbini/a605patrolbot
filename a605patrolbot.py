@@ -13,7 +13,8 @@ from datetime import datetime
 import requests
 
 # Token bot
-TOKEN = "7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0"
+import os
+TOKEN = os.getenv("TOKEN")
 
 # Tahapan conversation
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
@@ -186,6 +187,7 @@ async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Main App
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+
     app = ApplicationBuilder().token(TOKEN).build()
 
     # Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
