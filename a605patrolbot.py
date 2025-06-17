@@ -7,11 +7,6 @@ from keep_alive import keep_alive
 from datetime import datetime
 import requests
 
-# Setup Flask
-app = Flask(__name__)
-application = Application.builder().token(TOKEN).build()
-dispatcher: Dispatcher = application.dispatcher
-
 # Token bot
 import os
 TOKEN = os.getenv("TOKEN")
@@ -205,6 +200,13 @@ if __name__ == "__main__":
         },
         fallbacks=[],
     )
+
+# Setup Flask
+app = Flask(__name__)
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(conv_handler)
+app.add_handler(MessageHandler(filters.ALL, handle_any))
 
 @app.route('/')
 def home():
