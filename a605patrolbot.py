@@ -1,7 +1,7 @@
 from flask import Flask, request
 from telegram import Update, Bot, ReplyKeyboardMarkup
 from telegram.ext import (
-    Application, ApplicationBuilder, ContextTypes,
+   CommandHandler, Application, ApplicationBuilder, ContextTypes,
     ConversationHandler, MessageHandler, filters
 )
 from datetime import datetime
@@ -188,7 +188,9 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
+    entry_points=[
+        CommandHandler("start", start),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
         states={
             NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
             DEPARTEMEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_departemen)],
