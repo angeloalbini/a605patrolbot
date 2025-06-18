@@ -154,11 +154,11 @@ telegram_app.add_handler(conv_handler)
 def index():
     return "Bot aktif!"
 
-@flask_app.route('/webhook', methods=["POST"])
-def webhook():
+@flask_app.route('/webhook', methods=['POST'])
+async def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    telegram_app.update_queue.put(update)
-    return "OK"
+    await telegram_app.update_queue.put(update)
+    return 'OK'
 
 if __name__ == "__main__":
     keep_alive()
