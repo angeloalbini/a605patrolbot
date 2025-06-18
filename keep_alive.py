@@ -1,4 +1,3 @@
-# keep_alive.py
 from flask import Flask
 from threading import Thread
 
@@ -9,7 +8,7 @@ def home():
     return "Bot is alive!"
 
 def run():
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=8081)
 
 def keep_alive():
     t = Thread(target=run)
