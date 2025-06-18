@@ -1,14 +1,51 @@
+import asyncio
 from flask import Flask, request
-from telegram import Bot, Update, ReplyKeyboardMarkup
+from telegram import Update, Bot
 from telegram.ext import (
-    ApplicationBuilder, ContextTypes,
-    CommandHandler, MessageHandler, ConversationHandler, filters
+    ApplicationBuilder, CommandHandler, MessageHandler, filters
 )
-import logging, os, requests
-from datetime import datetime
+import os
+import logging
+from keep_alive import keep_alive
 
+# Logging
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# Global
 TOKEN = os.getenv("TOKEN")
-bot = Bot(token=TOKEN)
+bot = Bot(TOKEN)
+flask_app = Flask(__name__)
+app = None  # Telegram App (global)
+
+# Handler sample
+async def start(update: Update, context):
+    await update.message.reply_text("Halo dari webhook!")
+
+# Flask root
+@flask_app.route('/')
+def index():
+    return "Bot aktif!"
+
+# Webhook endpoint
+@flask_app.route('/webhook', methods=["POST"])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+    app.update_queue.put(update)
+    return "OK"
+
+async def main():
+    global app
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+
+    await app.initialize()
+    await app.start()
+    keep_alive()  # Start UptimeRobot server (if used)
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 # --- Tahapan & Data
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
