@@ -22,7 +22,8 @@ NIP_DB = {
     "068449": "Abdul Rohman",
     "156861": "Irpan Hakim Maulana",
     "E03713": "Sigit Cahyono",
-    "E03900": "Haidir Kurniawan"
+    "E03900": "Haidir Kurniawan",
+    "093341": "Budi Susilo"
 }
 
 # Daftar departemen, tinggal tambah di sini jika ada yang baru
