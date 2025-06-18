@@ -16,7 +16,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 TOKEN = os.getenv("TOKEN")
 bot = Bot(TOKEN)
 flask_app = Flask(__name__)
-telegram_app = None  # diinisialisasi nanti
+telegram_app = None
 
 # Tahapan
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
@@ -34,7 +34,7 @@ notifikasi_chat_ids = [
 def get_departemen_keyboard():
     return [DEPARTEMEN_LIST[i:i+2] for i in range(0, len(DEPARTEMEN_LIST), 2)]
 
-# Handler
+# Handler conversation
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Hai! Selamat datang di *A605 Patrol Bot*. Silakan ketik NIP kamu:",
@@ -122,6 +122,10 @@ async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("✅ Terima kasih atas laporanmu!", parse_mode="Markdown")
     return ConversationHandler.END
 
+# Handler di luar alur
+async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Silakan ketik /start untuk memulai laporan.")
+
 # Webhook route
 @flask_app.route('/')
 def index():
@@ -133,35 +137,30 @@ async def webhook():
     await telegram_app.update_queue.put(update)
     return 'OK'
 
-# Main
+# Main App
 async def main():
     global telegram_app
     telegram_app = ApplicationBuilder().token(TOKEN).build()
 
-   conv_handler = ConversationHandler(
-    entry_points=[
-        CommandHandler("start", start)  # Hanya trigger jika /start diketik
-    ],
-    states={
-        NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
-        DEPARTEMEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_departemen)],
-        BARANG: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_barang)],
-        STATUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_status)],
-        FOTO: [MessageHandler(filters.PHOTO, input_foto)],
-    },
-    fallbacks=[]
-)
-
-async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Silakan ketik /start untuk memulai laporan.")
-
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
+            DEPARTEMEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_departemen)],
+            BARANG: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_barang)],
+            STATUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_status)],
+            FOTO: [MessageHandler(filters.PHOTO, input_foto)],
+        },
+        fallbacks=[]
+    )
 
     telegram_app.add_handler(conv_handler)
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+
     await telegram_app.initialize()
     await telegram_app.start()
     keep_alive()
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main())`
