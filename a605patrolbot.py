@@ -179,18 +179,17 @@ async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return NIP
 
-# Set level logging
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+# Main App
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    app = ApplicationBuilder().token(TOKEN).build()
 
-# Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-conv_handler = ConversationHandler(
-    entry_points=[
-        CommandHandler("start", start),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
+    # Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    conv_handler = ConversationHandler(
+        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
         states={
             NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
             DEPARTEMEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_departemen)],
@@ -201,31 +200,10 @@ conv_handler = ConversationHandler(
         fallbacks=[],
     )
 
-# Build Telegram app dulu
-telegram_app = ApplicationBuilder().token(TOKEN).build()
-telegram_app.add_handler(conv_handler)
-telegram_app.add_handler(MessageHandler(filters.ALL, handle_any))
+    from keep_alive import keep_alive
 
-# Setup Flask
-flask_app = Flask(__name__)
+    keep_alive()  # agar tidak mati
 
-@flask_app.route('/')
-def index():
-    return "Bot aktif!"
-
-@flask_app.route('/webhook', methods=['POST'])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    telegram_app.update_queue.put(update)
-    return "OK"
-
-import asyncio
-
-async def main():
-    await telegram_app.initialize()
-    await telegram_app.start()
-    flask_app.run(host='0.0.0.0', port=8080)
-
-if __name__ == "__main__":
-    keep_alive()
-    asyncio.run(main())
+    app.add_handler(conv_handler)
+    app.add_handler(MessageHandler(filters.ALL, handle_any))
+    app.run_polling()
