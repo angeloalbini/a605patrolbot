@@ -12,7 +12,7 @@ from datetime import datetime
 # Logging
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = os.getenv("7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0")
+TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("https://a605patrolbot.onrender.com/webhook")  # contoh: https://your-app.onrender.com/webhook
 
 if not TOKEN or not WEBHOOK_URL:
