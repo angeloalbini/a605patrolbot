@@ -13,7 +13,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 TOKEN = os.getenv("TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # contoh: https://your-app.onrender.com/webhook
+WEBHOOK_URL = os.getenv("https://a605patrolbot.onrender.com/webhook")  # contoh: https://your-app.onrender.com/webhook
 
 if not TOKEN or not WEBHOOK_URL:
     raise Exception("TOKEN and WEBHOOK_URL environment variables must be set!")
