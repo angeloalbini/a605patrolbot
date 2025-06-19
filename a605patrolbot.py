@@ -212,5 +212,18 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.add_handler(MessageHandler(filters.ALL, handle_any))
+
+import asyncio
+
+async def main():
+    global telegram_app
+    telegram_app = ApplicationBuilder().token(TOKEN).build()
+    telegram_app.add_handler(conv_handler)
     await telegram_app.initialize()
     await telegram_app.start()
+    
+    # Flask tetap jalan di thread utama
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+
+if __name__ == "__main__":
+    asyncio.run(main())
