@@ -1,3 +1,5 @@
+https://api.telegram.org/bot7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0/setWebhook?url=https://a605patrolbot.onrender.com/webhook
+
 import asyncio
 import os
 import logging
@@ -37,7 +39,7 @@ DEPARTEMEN_LIST = [
 ]
 
 # Untuk tombol reply keyboard, otomatis 2 kolom per baris
-def get_departemen_keyboard():
+async def get_departemen_keyboard():
     return [DEPARTEMEN_LIST[i:i+2] for i in range(0, len(DEPARTEMEN_LIST), 2)]
 
 # Daftar chat ID tujuan notifikasi barang hilang
@@ -50,7 +52,7 @@ notifikasi_chat_ids = [
 ]
 
 # /start command
-def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Hai! Selamat datang di *A605 Patrol Bot*.\n"
         "Untuk mulai laporan, silakan ketik NIP kamu terlebih dahulu.",
@@ -59,7 +61,7 @@ def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NIP
 
 # Input NIP
-def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input NIP dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     nip = update.message.text.strip()
     if nip in NIP_DB:
@@ -74,7 +76,7 @@ def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NIP
 
 # Input Departemen
-def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Departemen dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     departemen = update.message.text.strip()
     if departemen not in DEPARTEMEN_LIST:
@@ -91,7 +93,7 @@ def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return BARANG
 
 # Input Barang
-def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Barang dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     barang = update.message.text.strip()
     if barang == "Kembali":
@@ -108,7 +110,7 @@ def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return STATUS
 
 # Input Status
-def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Status dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     status = update.message.text.strip().capitalize()
     if status == "Kembali":
@@ -128,7 +130,7 @@ def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FOTO
 
 # Input Foto dan kirim ke Apps Script & admin jika hilang
-def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Foto dari {update.effective_user.username or update.effective_user.id}: {update.message.photo[-1].file_id}")
     photo_file = update.message.photo[-1].file_id
     context.user_data["foto"] = photo_file
