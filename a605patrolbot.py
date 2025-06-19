@@ -1,77 +1,88 @@
-
-import asyncio
-from flask import Flask, request
-from telegram import Update, Bot, ReplyKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler, ContextTypes, filters
-)
+import logging
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, ConversationHandler
 from datetime import datetime
-import logging, os, requests
-from keep_alive import keep_alive
+import requests
 
-# Logging
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+# Token bot
+TOKEN = "7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0"
 
-# Global
-TOKEN = os.getenv("TOKEN")
-bot = Bot(TOKEN)
-flask_app = Flask(__name__)
-telegram_app = None
-
-# Tahapan
+# Tahapan conversation
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
+
+# Daftar NIP dan nama PIC (simulasi login)
 NIP_DB = {
+    "E05691": "Bisma Alimarwan",
     "172878": "Angelo Albini",
-    "093341": "Budi Susilo"
+    "178947": "Robiansyah Septian",
+    "068449": "Abdul Rohman",
+    "156861": "Irpan Hakim Maulana",
+    "E03713": "Sigit Cahyono",
+    "E03900": "Haidir Kurniawan"
 }
+
+# Daftar departemen, tinggal tambah di sini jika ada yang baru
 DEPARTEMEN_LIST = [
     "HomeComfort", "Electrical", "Cleaning", "Trendy Goods", "Kitchen", "Tools & Hardware"
 ]
-notifikasi_chat_ids = [
-    1085939011, 1277996102, 1282698714, 7273773533, 1840579824, 7680011694
-]
 
+# Untuk tombol reply keyboard, otomatis 2 kolom per baris
 def get_departemen_keyboard():
     return [DEPARTEMEN_LIST[i:i+2] for i in range(0, len(DEPARTEMEN_LIST), 2)]
 
-# Handler conversation
+# Daftar chat ID tujuan notifikasi barang hilang
+notifikasi_chat_ids = [
+    1085939011,  # SPV Angelo
+    1277996102,  # LP Bisma
+    1282698714,  # SM 
+    7273773533,  # SPV Irfan
+    1840579824,  # LP Haidir
+]
+
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 Hai! Selamat datang di *A605 Patrol Bot*. Silakan ketik NIP kamu:",
+        "👋 Hai! Selamat datang di *A605 Patrol Bot*.\n"
+        "Untuk mulai laporan, silakan ketik NIP kamu terlebih dahulu.",
         parse_mode="Markdown"
     )
     return NIP
 
+# Input NIP
 async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[LOG] Input NIP dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     nip = update.message.text.strip()
     if nip in NIP_DB:
         context.user_data["nip"] = nip
         context.user_data["pic"] = NIP_DB[nip]
         await update.message.reply_text(
-            "Pilih departemen:",
+            f"Halo {NIP_DB[nip]} 👋\nPilih departemen:",
             reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
         )
         return DEPARTEMEN
-    await update.message.reply_text("❌ NIP tidak dikenal.")
+    await update.message.reply_text("❌ NIP tidak didaftarkan sebagai PIC, Silahkan hubungi Manager on Duty.")
     return NIP
 
+# Input Departemen
 async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    dep = update.message.text.strip()
-    if dep in DEPARTEMEN_LIST:
-        context.user_data["departemen"] = dep
+    print(f"[LOG] Input Departemen dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
+    departemen = update.message.text.strip()
+    if departemen not in DEPARTEMEN_LIST:
         await update.message.reply_text(
-            "Ketik nama barang:",
-            reply_markup=ReplyKeyboardMarkup([["Kembali"]], one_time_keyboard=True)
+            "❌ Pilih departemen dari tombol yang tersedia.",
+            reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
         )
-        return BARANG
+        return DEPARTEMEN
+    context.user_data["departemen"] = departemen
     await update.message.reply_text(
-        "❌ Pilih dari tombol.",
-        reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
+        "Masukkan nama barang:",
+        reply_markup=ReplyKeyboardMarkup([["Kembali"]], one_time_keyboard=True)
     )
-    return DEPARTEMEN
+    return BARANG
 
+# Input Barang
 async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[LOG] Input Barang dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     barang = update.message.text.strip()
     if barang == "Kembali":
         await update.message.reply_text(
@@ -86,23 +97,34 @@ async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return STATUS
 
+# Input Status
 async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(f"[LOG] Input Status dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     status = update.message.text.strip().capitalize()
     if status == "Kembali":
-        await update.message.reply_text("Ketik nama barang lagi:")
+        await update.message.reply_text(
+            "Masukkan nama barang:",
+            reply_markup=ReplyKeyboardMarkup([["Kembali"]], one_time_keyboard=True)
+        )
         return BARANG
     if status not in ["Ada", "Kosong", "Hilang"]:
-        await update.message.reply_text("❌ Pilih status valid.")
+        await update.message.reply_text(
+            "❌ Pilihan tidak valid.",
+            reply_markup=ReplyKeyboardMarkup([["Ada", "Hilang", "Kosong"], ["Kembali"]], one_time_keyboard=True)
+        )
         return STATUS
     context.user_data["status"] = status
-    await update.message.reply_text("Silakan upload foto barang.")
+    await update.message.reply_text("Pilih kamera dan foto display barang:")
     return FOTO
 
+# Input Foto dan kirim ke Apps Script & admin jika hilang
 async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    photo_id = update.message.photo[-1].file_id
-    context.user_data["foto"] = photo_id
+    print(f"[LOG] Input Foto dari {update.effective_user.username or update.effective_user.id}: {update.message.photo[-1].file_id}")
+    photo_file = update.message.photo[-1].file_id
+    context.user_data["foto"] = photo_file
     data = context.user_data
 
+    # Kirim data ke Google Sheets
     requests.post("https://script.google.com/macros/s/AKfycbx6Op9JeUyqirKyAgEeKet-WO_A8KZqln75Cx9L676Ke6SHCvdaRHhRWOdPhOdfCrFX/exec", json={
         "departemen": data["departemen"],
         "nip": data["nip"],
@@ -113,38 +135,57 @@ async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "catatan": ""
     })
 
+    # Notifikasi ke banyak chat jika barang hilang
     if data["status"].lower() == "hilang":
-        notif = (
-            f"🚨 *LAPORAN BARANG HILANG*\n📦 {data['barang']}\n👤 {data['pic']} (NIP: {data['nip']})\n🏬 {data['departemen']}\n📅 {datetime.now().strftime('%Y-%m-%d')}\nhttps://s.id/botcontrol"
+        pesan = (
+            "🚨 *LAPORAN BARANG HILANG*\n\n"
+            f"📦 Barang: {data['barang']}\n"
+            f"👤 PIC: {data['pic']} (NIP: {data['nip']})\n"
+            f"🏬 Departemen: {data['departemen']}\n"
+            f"📅 Tanggal: {datetime.now().strftime('%Y-%m-%d')}\n\n"
+            "🔍 Mohon segera melakukan pengecekan di link berikut:\n"
+            "https://s.id/botcontrol"
         )
-        for cid in notifikasi_chat_ids:
-            await context.bot.send_message(chat_id=cid, text=notif, parse_mode="Markdown")
+        for chat_id in notifikasi_chat_ids:
+            await context.bot.send_message(chat_id=chat_id, text=pesan, parse_mode="Markdown")
 
-    await update.message.reply_text("✅ Terima kasih atas laporanmu!", parse_mode="Markdown")
+    await update.message.reply_text(
+        f"✅ Laporanmu sudah dikirim:\n"
+        f"Nama: *{data['pic']}*\n"
+        f"NIP: *{data['nip']}*\n"
+        f"Departemen: *{data['departemen']}*\n"
+        f"Barang: *{data['barang']}*\n"
+        f"Status: *{data['status']}*\n\n"
+        f"📋 Data akan digunakan untuk monitoring harian.\n"
+        f"Terima kasih *{data['pic']}* atas report hari ini!",
+        parse_mode="Markdown"
+    )
     return ConversationHandler.END
 
-# Handler di luar alur
-async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Silakan ketik /start untuk memulai laporan.")
+# Cancel command
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Laporan dibatalkan.")
+    return ConversationHandler.END
 
-# Webhook route
-@flask_app.route('/')
-def index():
-    return "Bot aktif!"
-
-@flask_app.route('/webhook', methods=['POST'])
-async def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    await telegram_app.update_queue.put(update)
-    return 'OK'
+# Handler untuk pesan bebas jika user belum login
+async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data is None or "nip" not in context.user_data:
+        await update.message.reply_text(
+            "Selamat datang di A605PatrolBot! Silakan ketik NIP Anda untuk mulai."
+        )
+        return NIP
 
 # Main App
-async def main():
-    global telegram_app
-    telegram_app = ApplicationBuilder().token(TOKEN).build()
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    # Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[MessageHandler(filters.TEXT & ~filters.COMMAND, start)],
         states={
             NIP: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_nip)],
             DEPARTEMEN: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_departemen)],
@@ -152,16 +193,13 @@ async def main():
             STATUS: [MessageHandler(filters.TEXT & ~filters.COMMAND, input_status)],
             FOTO: [MessageHandler(filters.PHOTO, input_foto)],
         },
-        fallbacks=[]
+        fallbacks=[],
     )
 
-    telegram_app.add_handler(conv_handler)
-    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+    from keep_alive import keep_alive
 
-    await telegram_app.initialize()
-    await telegram_app.start()
-    keep_alive()
-    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    keep_alive()  # agar tidak mati
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    app.add_handler(conv_handler)
+    app.add_handler(MessageHandler(filters.ALL, handle_any))
+    app.run_polling()
