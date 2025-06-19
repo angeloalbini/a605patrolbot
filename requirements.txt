@@ -1,3 +1,4 @@
-flask>=2.3
-python-telegram-bot>=20.3
+flask[async]
+python-telegram-bot==20.3
 requests
+gunicorn
