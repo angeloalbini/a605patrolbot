@@ -202,4 +202,5 @@ if __name__ == "__main__":
 
     app.add_handler(conv_handler)
     app.add_handler(MessageHandler(filters.ALL, handle_any))
-    app.run_polling()
+    await telegram_app.initialize()
+    await telegram_app.start()
