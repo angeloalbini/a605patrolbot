@@ -50,7 +50,7 @@ notifikasi_chat_ids = [
 ]
 
 # /start command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Hai! Selamat datang di *A605 Patrol Bot*.\n"
         "Untuk mulai laporan, silakan ketik NIP kamu terlebih dahulu.",
@@ -59,7 +59,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NIP
 
 # Input NIP
-async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input NIP dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     nip = update.message.text.strip()
     if nip in NIP_DB:
@@ -74,7 +74,7 @@ async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return NIP
 
 # Input Departemen
-async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Departemen dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     departemen = update.message.text.strip()
     if departemen not in DEPARTEMEN_LIST:
@@ -91,7 +91,7 @@ async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return BARANG
 
 # Input Barang
-async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Barang dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     barang = update.message.text.strip()
     if barang == "Kembali":
@@ -108,7 +108,7 @@ async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return STATUS
 
 # Input Status
-async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Status dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
     status = update.message.text.strip().capitalize()
     if status == "Kembali":
@@ -128,7 +128,7 @@ async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FOTO
 
 # Input Foto dan kirim ke Apps Script & admin jika hilang
-async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f"[LOG] Input Foto dari {update.effective_user.username or update.effective_user.id}: {update.message.photo[-1].file_id}")
     photo_file = update.message.photo[-1].file_id
     context.user_data["foto"] = photo_file
@@ -173,12 +173,12 @@ async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # Cancel command
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Laporan dibatalkan.")
     return ConversationHandler.END
 
 # Handler untuk pesan bebas jika user belum login
-async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data is None or "nip" not in context.user_data:
         await update.message.reply_text(
             "Selamat datang di A605PatrolBot! Silakan ketik NIP Anda untuk mulai."
@@ -215,12 +215,11 @@ if __name__ == "__main__":
 
 import asyncio
 
-async def main():
-    global telegram_app
-    telegram_app = ApplicationBuilder().token(TOKEN).build()
-    telegram_app.add_handler(conv_handler)
-    await telegram_app.initialize()
-    await telegram_app.start()
+@flask_app.route('/webhook', methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+    telegram_app.update_queue.put(update)
+    return 'OK'
     
     # Flask tetap jalan di thread utama
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
