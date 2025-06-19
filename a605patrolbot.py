@@ -1,8 +1,18 @@
+import asyncio
+import os
 import logging
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes, ConversationHandler
-from datetime import datetime
 import requests
+from flask import Flask, request
+from telegram import Update, Bot, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, ContextTypes,
+    CommandHandler, MessageHandler, ConversationHandler, filters
+)
+from datetime import datetime
+from keep_alive import keep_alive
+
+# Konfigurasi Logging
+logging.basicConfig(level=logging.INFO)
 
 # Token bot
 TOKEN = "7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0"
