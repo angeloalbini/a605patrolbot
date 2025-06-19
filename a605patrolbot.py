@@ -16,7 +16,7 @@ TOKEN = os.getenv("7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0")
 WEBHOOK_URL = os.getenv("https://a605patrolbot.onrender.com/webhook")  # contoh: https://your-app.onrender.com/webhook
 
 if not TOKEN or not WEBHOOK_URL:
-    raise Exception("TOKEN and WEBHOOK_URL environment variables must be set!")
+    raise Exception("https://api.telegram.org/bot7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0/setWebhook?url=https://a605patrolbot.onrender.com/webhook")
 
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
 
