@@ -130,10 +130,12 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown))
 
-# Start App
-if __name__ == "__main__":
-    telegram_app.initialize()
-    telegram_app.start()
-    keep_alive()
-    requests.get(f"https://api.telegram.org/bot{TOKEN}/setWebhook?url={WEBHOOK_URL}")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    try:
+        update = Update.de_json(request.get_json(force=True), bot)
+        telegram_app.update_queue.put_nowait(update)
+        return 'OK'
+    except Exception as e:
+        print("[Webhook ERROR]", str(e))
+        return 'ERROR', 500
