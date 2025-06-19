@@ -107,8 +107,8 @@ def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
         notif = (
             f"🚨 *LAPORAN BARANG HILANG*\n📦 {data['barang']}\n👤 {data['pic']} (NIP: {data['nip']})"
             f"\n🏬 {data['departemen']}\n📅 {datetime.now().strftime('%Y-%m-%d')}\nhttps://s.id/botcontrol")
-        for cid in NOTIF_CHAT_IDS:
-        bot.send_message(chat_id=cid, text=notif, parse_mode="Markdown")
+    for cid in NOTIF_CHAT_IDS:
+            bot.send_message(chat_id=cid, text=notif, parse_mode="Markdown")
 
     update.message.reply_text("✅ Terima kasih atas laporanmu!", parse_mode="Markdown")
     return ConversationHandler.END
