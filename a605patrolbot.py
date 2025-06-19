@@ -1,5 +1,3 @@
-https://api.telegram.org/bot7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0/setWebhook?url=https://a605patrolbot.onrender.com/webhook
-
 from flask import Flask, request
 from telegram import Update, Bot, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -14,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Token bot
 TOKEN = os.getenv=("TOKEN")
+TELEGRAM_API_URL = f"https://api.telegram.org/bot7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0/setWebhook?url=https://a605patrolbot.onrender.com/webhook"
 
 # Tahapan conversation
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
