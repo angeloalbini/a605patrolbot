@@ -1,18 +1,21 @@
+import os
+import logging
+import requests
 from flask import Flask, request
-from telegram import Update, Bot, ReplyKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, ContextTypes,
     CommandHandler, MessageHandler, ConversationHandler, filters
 )
 from datetime import datetime
-from keep_alive import keep_alive
 
 # Konfigurasi Logging
 logging.basicConfig(level=logging.INFO)
 
 # Token bot
-TOKEN = os.getenv=("TOKEN")
-TELEGRAM_API_URL = f"https://api.telegram.org/bot7564987222:AAGZcmOQhw7YNthQ9GDI5Jobpe_BnxqdiO0/setWebhook?url=https://a605patrolbot.onrender.com/webhook"
+TOKEN = os.getenv("TOKEN")
+if not TOKEN:
+    raise Exception("TOKEN environment variable not set!")
 
 # Tahapan conversation
 NIP, DEPARTEMEN, BARANG, STATUS, FOTO = range(5)
@@ -34,7 +37,7 @@ DEPARTEMEN_LIST = [
 ]
 
 # Untuk tombol reply keyboard, otomatis 2 kolom per baris
-async def get_departemen_keyboard():
+def get_departemen_keyboard():
     return [DEPARTEMEN_LIST[i:i+2] for i in range(0, len(DEPARTEMEN_LIST), 2)]
 
 # Daftar chat ID tujuan notifikasi barang hilang
@@ -48,18 +51,24 @@ notifikasi_chat_ids = [
 
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "👋 Hai! Selamat datang di *A605 Patrol Bot*.\n"
-        "Untuk mulai laporan, silakan ketik NIP kamu terlebih dahulu.",
-        parse_mode="Markdown"
-    )
+    if update.message:
+        await update.message.reply_text(
+            "👋 Hai! Selamat datang di *A605 Patrol Bot*.\n"
+            "Untuk mulai laporan, silakan ketik NIP kamu terlebih dahulu.",
+            parse_mode="Markdown"
+        )
     return NIP
 
 # Input NIP
 async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[LOG] Input NIP dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
+    if not update.message or not update.message.text:
+        if update.message:
+            await update.message.reply_text("❌ NIP tidak boleh kosong. Silakan masukkan NIP kamu.")
+        return NIP
     nip = update.message.text.strip()
     if nip in NIP_DB:
+        if context.user_data is None:
+            context.user_data = {}
         context.user_data["nip"] = nip
         context.user_data["pic"] = NIP_DB[nip]
         await update.message.reply_text(
@@ -72,7 +81,13 @@ async def input_nip(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Input Departemen
 async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[LOG] Input Departemen dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
+    if not update.message or not update.message.text:
+        if update.message:
+            await update.message.reply_text(
+                "❌ Departemen tidak boleh kosong. Silakan pilih dari tombol yang tersedia.",
+                reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
+            )
+        return DEPARTEMEN
     departemen = update.message.text.strip()
     if departemen not in DEPARTEMEN_LIST:
         await update.message.reply_text(
@@ -80,6 +95,8 @@ async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
         )
         return DEPARTEMEN
+    if context.user_data is None:
+        context.user_data = {}
     context.user_data["departemen"] = departemen
     await update.message.reply_text(
         "Masukkan nama barang:",
@@ -89,7 +106,12 @@ async def input_departemen(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Input Barang
 async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[LOG] Input Barang dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
+    if not update.message or not update.message.text:
+        if update.message:
+            await update.message.reply_text(
+                "❌ Nama barang tidak boleh kosong. Silakan masukkan nama barang."
+            )
+        return BARANG
     barang = update.message.text.strip()
     if barang == "Kembali":
         await update.message.reply_text(
@@ -97,6 +119,8 @@ async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup(get_departemen_keyboard(), one_time_keyboard=True)
         )
         return DEPARTEMEN
+    if context.user_data is None:
+        context.user_data = {}
     context.user_data["barang"] = barang
     await update.message.reply_text(
         "Pilih status barang:",
@@ -106,7 +130,13 @@ async def input_barang(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Input Status
 async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[LOG] Input Status dari {update.effective_user.username or update.effective_user.id}: {update.message.text}")
+    if not update.message or not update.message.text:
+        if update.message:
+            await update.message.reply_text(
+                "❌ Status tidak boleh kosong. Silakan pilih dari tombol yang tersedia.",
+                reply_markup=ReplyKeyboardMarkup([["Ada", "Hilang", "Kosong"], ["Kembali"]], one_time_keyboard=True)
+            )
+        return STATUS
     status = update.message.text.strip().capitalize()
     if status == "Kembali":
         await update.message.reply_text(
@@ -120,25 +150,32 @@ async def input_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=ReplyKeyboardMarkup([["Ada", "Hilang", "Kosong"], ["Kembali"]], one_time_keyboard=True)
         )
         return STATUS
+    if context.user_data is None:
+        context.user_data = {}
     context.user_data["status"] = status
     await update.message.reply_text("Pilih kamera dan foto display barang:")
     return FOTO
 
 # Input Foto dan kirim ke Apps Script & admin jika hilang
 async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"[LOG] Input Foto dari {update.effective_user.username or update.effective_user.id}: {update.message.photo[-1].file_id}")
+    if not update.message or not update.message.photo:
+        if update.message:
+            await update.message.reply_text("❌ Silakan kirim foto barang terlebih dahulu.")
+        return FOTO
     photo_file = update.message.photo[-1].file_id
+    if context.user_data is None:
+        context.user_data = {}
     context.user_data["foto"] = photo_file
     data = context.user_data
 
     # Kirim data ke Google Sheets
     requests.post("https://script.google.com/macros/s/AKfycbx6Op9JeUyqirKyAgEeKet-WO_A8KZqln75Cx9L676Ke6SHCvdaRHhRWOdPhOdfCrFX/exec", json={
-        "departemen": data["departemen"],
-        "nip": data["nip"],
-        "pic": data["pic"],
-        "barang": data["barang"],
-        "status": data["status"],
-        "foto_url": data["foto"],
+        "departemen": data.get("departemen", ""),
+        "nip": data.get("nip", ""),
+        "pic": data.get("pic", ""),
+        "barang": data.get("barang", ""),
+        "status": data.get("status", ""),
+        "foto_url": data.get("foto", ""),
         "catatan": ""
     })
 
@@ -170,22 +207,26 @@ async def input_foto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # Cancel command
-def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Laporan dibatalkan.")
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message:
+        await update.message.reply_text("Laporan dibatalkan.")
     return ConversationHandler.END
 
 # Handler untuk pesan bebas jika user belum login
-def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data is None or "nip" not in context.user_data:
-        await update.message.reply_text(
-            "Selamat datang di A605PatrolBot! Silakan ketik NIP Anda untuk mulai."
-        )
+        if update.message:
+            await update.message.reply_text(
+                "Selamat datang di A605PatrolBot! Silakan ketik NIP Anda untuk mulai."
+            )
         return NIP
 
 # Main App
+# Inisialisasi aplikasi Telegram di global scope agar bisa diakses di seluruh file
+app = ApplicationBuilder().token(TOKEN).build()
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    app = ApplicationBuilder().token(TOKEN).build()
 
     # Set level logging httpx dan httpcore ke WARNING agar tidak muncul INFO di terminal
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -204,22 +245,30 @@ if __name__ == "__main__":
     )
 
     from keep_alive import keep_alive
-
-    keep_alive()  # agar tidak mati
-
     app.add_handler(conv_handler)
     app.add_handler(MessageHandler(filters.ALL, handle_any))
 
 import asyncio
 
+flask_app = Flask(__name__)
+
+from telegram import Bot
+
+bot = Bot(token=TOKEN)
+
 @flask_app.route('/webhook', methods=['POST'])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
-    telegram_app.update_queue.put(update)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(app.update_queue.put(update))
     return 'OK'
     
     # Flask tetap jalan di thread utama
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 8443)),
+        url_path="webhook"
+    )
