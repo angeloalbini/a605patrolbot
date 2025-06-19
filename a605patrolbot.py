@@ -187,5 +187,4 @@ def webhook():
 if __name__ == "__main__":
     # Set webhook ke Telegram
     bot = Bot(TOKEN)
-    bot.set_webhook(url=WEBHOOK_URL)
     flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
